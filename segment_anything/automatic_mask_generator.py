@@ -31,6 +31,8 @@ from .utils.amg import (
     uncrop_points,
 )
 
+import cv2
+
 
 class SamAutomaticMaskGenerator:
     def __init__(
@@ -231,7 +233,7 @@ class SamAutomaticMaskGenerator:
     ) -> MaskData:
         # Crop the image and calculate embeddings
         x0, y0, x1, y1 = crop_box
-        cropped_im = image[y0:y1, x0:x1, :]
+        self.cropped_im = cropped_im = image[y0:y1, x0:x1, :]
         cropped_im_size = cropped_im.shape[:2]
         self.predictor.set_image(cropped_im)
 
@@ -289,6 +291,19 @@ class SamAutomaticMaskGenerator:
             iou_preds=iou_preds.flatten(0, 1),
             points=torch.as_tensor(points.repeat(masks.shape[1], axis=0)),
         )
+        # import pdb; pdb.set_trace()
+        masks = data['masks'].cpu().numpy()
+        points = data['points'].cpu().numpy()
+        for i in range(0, len(masks), 3):
+            img = self.cropped_im.copy()
+            img = cv2.circle(img, (int(points[i][0]), int(points[i][1])), 3, (0, 0, 255), -1)
+            tiles = [img]
+            for j in range(3):
+                mask = ((masks[i+j] > 0) * 255).astype(np.uint8)
+                mask = cv2.circle(mask, (int(points[i][0]), int(points[i][1])), 3, (0, 0, 255), -1)
+                tiles.append(np.stack([mask, mask, mask], axis=-1))
+            cv2.imshow("mask", np.hstack(tiles))
+            cv2.waitKey(100)
         del masks
 
         # Filter by predicted IoU
