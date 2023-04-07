@@ -10,6 +10,7 @@ _ext
 *.egg-info/
 build/
 dist/
+output/
 wheels/
 
 # pytorch/python/numpy formats
